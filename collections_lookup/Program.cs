@@ -11,15 +11,23 @@ namespace collections_lookup
     {
         static void Main(string[] args)
         {
-            var counts = new[] { 10, 100, 1000, 10000, 100000, 1000000, 10000000 };
+            var counts = Enumerable.Range(1, 6)
+                                    .Select(i => (int)Math.Pow(10, i))
+                                    .ToArray();
 
+            Run(counts, MeasureCreation, $"creation");
+           
             int lookupsCount = 1000;
 
-            Run(counts, (c) => MeasureCreationAndLookup(c, 1), $"creation and lookup 1 times");
-            Run(counts, (c) => MeasureCreationAndLookup(c, lookupsCount), $"creation and lookup {lookupsCount} times");
-            Run(counts, (c) => MeasureLookup(c, 1), $"lookup only 1 times");
-            Run(counts, (c) => MeasureLookup(c, lookupsCount), $"lookup only {lookupsCount} times");
+            Run(counts, (c) => MeasureCreationAndSingleLookup(c, 1), $"creation and lookup | 1 times");
+            Run(counts, (c) => MeasureCreationAndSingleLookup(c, lookupsCount), $"creation and lookup | {lookupsCount} times");
+           
+            Run(counts, (c) => MeasureSingleLookup(c, 1), $"lookup single item | 1 times");
+            Run(counts, (c) => MeasureSingleLookup(c, lookupsCount), $"lookup single item | {lookupsCount} times");
 
+            Run(counts, (c) => MeasureMultipleLookup(c, 1), $"lookup in Where()");
+
+            Console.WriteLine("done!");
             Console.ReadLine();
         }
 
@@ -53,7 +61,37 @@ namespace collections_lookup
             return table;
         }
 
-        static Stats MeasureCreationAndLookup(int itemsCount, int lookupsCount)
+        static Stats MeasureCreation(int itemsCount)
+        {
+            Guid[] dataset = GenerateDataset(itemsCount);
+
+            var itemToSearch = dataset[dataset.Length - 1];
+
+            var listTime = Measure(() =>
+            {
+                var list = dataset.ToList();
+            });
+
+            var dictionaryTime = Measure(() =>
+            {
+                var dictionary = dataset.ToDictionary(k => k);
+            });
+
+            var hashsetTime = Measure(() =>
+            {
+                var hashset = dataset.ToHashSet();
+            });
+
+            return new Stats()
+            {
+                itemsCount = itemsCount,
+                listTime = listTime,
+                dictionaryTime = dictionaryTime,
+                hashsetTime = hashsetTime,
+            };
+        }
+
+        static Stats MeasureCreationAndSingleLookup(int itemsCount, int lookupsCount)
         {
             Guid[] dataset = GenerateDataset(itemsCount);
 
@@ -95,7 +133,7 @@ namespace collections_lookup
             };
         }
 
-        static Stats MeasureLookup(int itemsCount, int lookupsCount)
+        static Stats MeasureSingleLookup(int itemsCount, int lookupsCount)
         {
             Guid[] dataset = GenerateDataset(itemsCount);
 
@@ -138,6 +176,51 @@ namespace collections_lookup
             };
         }
         
+        static Stats MeasureMultipleLookup(int itemsCount, int lookupsCount)
+        {
+            Guid[] dataset = GenerateDataset(itemsCount);
+
+            var list = dataset.ToList();
+            var dictionary = dataset.ToDictionary(k => k);
+            var hashset = dataset.ToHashSet();
+          
+            var listTime = Measure(() =>
+            {
+                Repeat(() =>
+                {
+                    var cross = dataset.Where(i => list.Contains(i))
+                                        .ToArray();
+                }, lookupsCount);
+            });
+
+            var dictionaryTime = Measure(() =>
+            {
+                Repeat(() =>
+                {
+                    var cross = dataset.Where(i => dictionary.ContainsKey(i))
+                                        .ToArray();
+                }, lookupsCount);
+            });
+
+            var hashsetTime = Measure(() =>
+            {
+                Repeat(() =>
+                {
+                    var cross = dataset.Where(i => hashset.Contains(i))
+                                        .ToArray();
+                }, lookupsCount);
+            });
+
+            return new Stats()
+            {
+                itemsCount = itemsCount,
+                listTime = listTime,
+                dictionaryTime = dictionaryTime,
+                hashsetTime = hashsetTime,
+            };
+        }
+        
+
         static void Repeat(Action action, int times)
         {
             for (int i = 0; i != times; ++i)
