@@ -13,13 +13,17 @@ namespace collections_lookup
         {
             var counts = new[] { 10, 100, 1000, 10000, 100000, 1000000, 10000000 };
 
-            Foo(counts, MeasureCreationAndLookup, "creation and lookup");
-            Foo(counts, MeasureLookup, "lookup only");
+            int lookupsCount = 1000;
+
+            Run(counts, (c) => MeasureCreationAndLookup(c, 1), $"creation and lookup 1 times");
+            Run(counts, (c) => MeasureCreationAndLookup(c, lookupsCount), $"creation and lookup {lookupsCount} times");
+            Run(counts, (c) => MeasureLookup(c, 1), $"lookup only 1 times");
+            Run(counts, (c) => MeasureLookup(c, lookupsCount), $"lookup only {lookupsCount} times");
 
             Console.ReadLine();
         }
 
-        private static void Foo(IEnumerable<int> counts, Func<int, Stats> measureFunc, string title)
+        private static void Run(IEnumerable<int> counts, Func<int, Stats> measureFunc, string title)
         {
             var table = CreateEmptyTable();
 
@@ -49,7 +53,7 @@ namespace collections_lookup
             return table;
         }
 
-        static Stats MeasureCreationAndLookup(int itemsCount)
+        static Stats MeasureCreationAndLookup(int itemsCount, int lookupsCount)
         {
             Guid[] dataset = GenerateDataset(itemsCount);
 
@@ -58,19 +62,28 @@ namespace collections_lookup
             var listTime = Measure(() =>
             {
                 var list = dataset.ToList();
-                var contains = list.Contains(itemToSearch);
+                Repeat(() =>
+                {
+                    var contains = list.Contains(itemToSearch);
+                }, lookupsCount);
             });
 
             var dictionaryTime = Measure(() =>
             {
                 var dictionary = dataset.ToDictionary(k => k);
-                var contains = dictionary.ContainsKey(itemToSearch);
+                Repeat(() =>
+                {
+                    var contains = dictionary.ContainsKey(itemToSearch);
+                }, lookupsCount);
             });
 
             var hashsetTime = Measure(() =>
             {
                 var hashset = dataset.ToHashSet();
-                var contains = hashset.Contains(itemToSearch);
+                Repeat(() =>
+                {
+                    var contains = hashset.Contains(itemToSearch);
+                }, lookupsCount);
             });
 
             return new Stats()
@@ -82,7 +95,7 @@ namespace collections_lookup
             };
         }
 
-        static Stats MeasureLookup(int itemsCount)
+        static Stats MeasureLookup(int itemsCount, int lookupsCount)
         {
             Guid[] dataset = GenerateDataset(itemsCount);
 
@@ -94,17 +107,26 @@ namespace collections_lookup
           
             var listTime = Measure(() =>
             {
-                var contains = list.Contains(itemToSearch);
+                Repeat(() =>
+                {
+                    var contains = list.Contains(itemToSearch);
+                }, lookupsCount);
             });
 
             var dictionaryTime = Measure(() =>
             {
-                var contains = dictionary.ContainsKey(itemToSearch);
+                Repeat(() =>
+                {
+                    var contains = dictionary.ContainsKey(itemToSearch);
+                }, lookupsCount);
             });
 
             var hashsetTime = Measure(() =>
             {
-                var contains = hashset.Contains(itemToSearch);
+                Repeat(() =>
+                {
+                    var contains = hashset.Contains(itemToSearch);
+                }, lookupsCount);
             });
 
             return new Stats()
@@ -114,6 +136,12 @@ namespace collections_lookup
                 dictionaryTime = dictionaryTime,
                 hashsetTime = hashsetTime,
             };
+        }
+        
+        static void Repeat(Action action, int times)
+        {
+            for (int i = 0; i != times; ++i)
+                action();
         }
 
         private static Guid[] GenerateDataset(int itemsCount)
