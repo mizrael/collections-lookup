@@ -11,7 +11,7 @@ namespace collections_lookup
     {
         static void Main(string[] args)
         {
-            var counts = Enumerable.Range(1, 6)
+            var counts = Enumerable.Range(1, 5)
                                     .Select(i => (int)Math.Pow(10, i))
                                     .ToArray();
 
