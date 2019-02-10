@@ -28,4 +28,4 @@ It first generates an array of Guids and uses it as source dataset to record the
   For the last example the system is looping over an existing dataset and performing a lookup for the current item. As expected, Dictionaries and Hashset perform definitely better than List.
   
 
-It's easy to see that in almost all the cases makes no differece which data structure is used if the dataset is relatively small, less than 10000 items. The only case where the choice matters is when we have the need to cross two collections and do a search.
+It's easy to see that in almost all the cases makes no difference which data structure is used if the dataset is relatively small, less than 10000 items. The only case where the choice matters is when we have the need to cross two collections and do a search.
